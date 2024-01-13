@@ -1,11 +1,12 @@
 package com.dhirunand.equilizerlsassignment;
 
+import android.content.ActivityNotFoundException;
 import android.content.Context;
 import android.content.Intent;
 import android.media.AudioManager;
-import android.media.MediaPlayer;
 import android.media.audiofx.BassBoost;
 import android.media.audiofx.Equalizer;
+import android.net.Uri;
 import android.os.Bundle;
 import android.provider.MediaStore;
 import android.util.Log;
@@ -15,9 +16,16 @@ import android.widget.CheckBox;
 import android.widget.CompoundButton;
 import android.widget.SeekBar;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
+
+import com.google.android.gms.ads.AdRequest;
+import com.google.android.gms.ads.AdView;
+import com.google.android.gms.ads.MobileAds;
+
+import java.io.File;
 
 
 public class MainActivity extends AppCompatActivity implements SeekBar.OnSeekBarChangeListener, CompoundButton.OnCheckedChangeListener, View.OnClickListener {
@@ -43,13 +51,16 @@ public class MainActivity extends AppCompatActivity implements SeekBar.OnSeekBar
 
     int num_sliders = 0;
 
-    MediaPlayer mp = null;
+    private AdView mAdView;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
+        MobileAds.initialize(this);
+        mAdView = findViewById(R.id.adView);
+        mAdView.loadAd(new AdRequest.Builder().build());
 
         eq_enabled_checkbox = findViewById(R.id.eq_enabled_checkbox);
         eq_enabled_checkbox.setOnCheckedChangeListener(this);
@@ -75,8 +86,16 @@ public class MainActivity extends AppCompatActivity implements SeekBar.OnSeekBar
         slider_labels_textview[4] = findViewById(R.id.slider_label_5);
 
         manager = (AudioManager) this.getSystemService(Context.AUDIO_SERVICE);
-        if (manager.isMusicActive())
-            initialiseEqualizer();
+        if (manager.isMusicActive()) {
+            try {
+                initialiseEqualizer();
+            } catch (Exception e) {
+                Toast.makeText(this, "Another Equalizer is running", Toast.LENGTH_SHORT).show();
+                eq.release();
+                finish();
+                Log.v("Dhiru", e.getMessage());
+            }
+        }
 
     }
 
@@ -88,18 +107,27 @@ public class MainActivity extends AppCompatActivity implements SeekBar.OnSeekBar
 
     @Override
     public void onProgressChanged(SeekBar seekBar, int level, boolean fromTouch) {
-        if (seekBar == bass_boost_seekbar) {
-            bb.setEnabled(level > 0);
-            bb.setStrength((short) level); // Already in the right range 0-1000
-        } else if (eq != null) {
-            int new_level = min_level + (max_level - min_level) * level / 100;
+        try {
+            if (seekBar == bass_boost_seekbar) {
+                bb.setEnabled(level >= 0);
+                bb.setStrength((short) level); // Already in the right range 0-1000
+            } else if (eq != null && eq.getEnabled()) {
+                int new_level = min_level + (max_level - min_level) * level / 100;
 
-            for (int i = 0; i < num_sliders; i++) {
-                if (sliders_seekbar[i] == seekBar) {
-                    eq.setBandLevel((short) i, (short) new_level);
-                    break;
+                for (int i = 0; i < num_sliders; i++) {
+                    if (sliders_seekbar[i] == seekBar) {
+                        eq.setBandLevel((short) i, (short) new_level);
+                        break;
+                    }
                 }
             }
+        } catch (NullPointerException nullPointerException) {
+            Toast.makeText(this, "Open music player to apply changes", Toast.LENGTH_SHORT).show();
+        } catch (Exception e) {
+            Toast.makeText(this, "Another Equalizer is running", Toast.LENGTH_SHORT).show();
+            Log.e("Dhiru", e.getMessage());
+            eq.release();
+            finish();
         }
     }
 
@@ -136,7 +164,12 @@ public class MainActivity extends AppCompatActivity implements SeekBar.OnSeekBar
     @Override
     public void onCheckedChanged(CompoundButton view, boolean isChecked) {
         if (view == eq_enabled_checkbox && eq != null) {
+            if (isChecked) {
+                eq.setEnabled(true);
+                //initialiseEqualizer();
+            }
             eq.setEnabled(isChecked);
+            bb.setEnabled(isChecked);
         }
     }
 
@@ -148,15 +181,21 @@ public class MainActivity extends AppCompatActivity implements SeekBar.OnSeekBar
         }
 
         if (view == open_music_player) {
-            Intent intent = new Intent(MediaStore.INTENT_ACTION_MUSIC_PLAYER);
-            startActivityForResult(intent, REQUEST_CODE);
+            Intent intent = new Intent(MediaStore.INTENT_ACTION_MEDIA_PLAY_FROM_SEARCH);
+            try {
+//                startActivityForResult(intent, REQUEST_CODE);
+                startActivity(intent);
+
+            } catch (ActivityNotFoundException e) {
+                Toast.makeText(this, "No Music Player found in your device", Toast.LENGTH_SHORT).show();
+            }
+
         }
     }
 
     @Override
     protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
-
 
         if (manager.isMusicActive()) {
             initialiseEqualizer();
@@ -183,17 +222,22 @@ public class MainActivity extends AppCompatActivity implements SeekBar.OnSeekBar
     }
 
     public void setFlat() {
-        if (eq != null) {
-            for (int i = 0; i < num_sliders; i++)
-                eq.setBandLevel((short) i, (short) 0);
-        }
+        try {
+            if (eq != null) {
+                for (int i = 0; i < num_sliders; i++)
+                    eq.setBandLevel((short) i, (short) 0);
+            }
 
-        if (bb != null) {
-            bb.setEnabled(false);
-            bb.setStrength((short) 0);
-        }
+            if (bb != null) {
+                bb.setEnabled(false);
+                bb.setStrength((short) 0);
+            }
 
-        updateUserInterface();
+            updateUserInterface();
+        } catch (Exception e) {
+            Toast.makeText(this, "Another Equalizer is running", Toast.LENGTH_SHORT).show();
+            finish();
+        }
     }
 
     public void updateUserInterface() {
@@ -214,6 +258,28 @@ public class MainActivity extends AppCompatActivity implements SeekBar.OnSeekBar
     @Override
     protected void onResume() {
         super.onResume();
+
+
+        try {
+            if (manager.isMusicActive()) {
+                try {
+                    initialiseEqualizer();
+                } catch (Exception e) {
+                    Toast.makeText(this, "Another Equalizer is running", Toast.LENGTH_SHORT).show();
+                    eq.release();
+                    finish();
+                    Log.v("Dhiru", e.getMessage());
+                }
+            }
+
+//            if (eq != null && !eq.getEnabled()) {
+//                initialiseEqualizer();
+//            }
+        } catch (Exception e) {
+            Toast.makeText(this, "Another Equalizer is running", Toast.LENGTH_SHORT).show();
+            finish();
+            Log.e("onResume", e.getMessage());
+        }
 
         //mp.start();
     }

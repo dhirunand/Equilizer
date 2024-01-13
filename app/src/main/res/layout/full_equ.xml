@@ -213,8 +213,8 @@
             android:layout_height="wrap_content"
             android:layout_above="@id/eq_enabled_checkbox"
             android:layout_centerHorizontal="true"
-            android:background="@drawable/round_corner"
-            android:padding="4dp"
+            android:background="@drawable/gradient_stroke"
+            android:padding="8dp"
             android:text="open music player" />
 
         <CheckBox
@@ -223,7 +223,7 @@
             android:layout_height="wrap_content"
             android:layout_alignParentStart="true"
             android:layout_alignParentBottom="true"
-            android:text="enable equilizer"
+            android:text="enable Equalizer"
             android:textAllCaps="true" />
 
         <Button
@@ -235,6 +235,7 @@
             android:background="@drawable/round_corner"
             android:text="flat"
             android:textAllCaps="true" />
+
     </RelativeLayout>
 
 </LinearLayout>
