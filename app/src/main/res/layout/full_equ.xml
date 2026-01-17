@@ -208,14 +208,16 @@
 
         <TextView
             android:id="@+id/open_music_player_textView"
-            style="@style/TextAppearance.AppCompat.Medium"
+            style="@style/TextAppearance.AppCompat.Small"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_above="@id/eq_enabled_checkbox"
             android:layout_centerHorizontal="true"
+            android:layout_margin="8dp"
             android:background="@drawable/gradient_stroke"
+            android:gravity="center"
             android:padding="8dp"
-            android:text="open music player" />
+            android:text="To improve your experience, this app depends on services like YouTube and Spotify." />
 
         <CheckBox
             android:id="@+id/eq_enabled_checkbox"

@@ -1,5 +1,6 @@
 package com.dhirunand.equilizerlsassignment;
 
+import android.app.Application;
 import android.content.ActivityNotFoundException;
 import android.content.Context;
 import android.content.Intent;
@@ -58,7 +59,8 @@ public class MainActivity extends AppCompatActivity implements SeekBar.OnSeekBar
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        MobileAds.initialize(this);
+
+//        MobileAds.initialize(this); // now MyApplication is initializing this so no need to add here also
         mAdView = findViewById(R.id.adView);
         mAdView.loadAd(new AdRequest.Builder().build());
 
